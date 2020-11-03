@@ -30,13 +30,10 @@ robust_git
 @contact: fpemud@sina.com
 """
 
-import os
-import re
+import sys
 import time
-import fcntl
-import errno
-import shutil
-from passlib import hosts
+import selectors
+import subprocess
 
 __author__ = "fpemud@sina.com (Fpemud)"
 __version__ = "0.0.1"
@@ -45,7 +42,8 @@ __version__ = "0.0.1"
 def clone(*args):
     while True:
         try:
-            _Util.shellExecWithStuckCheck(["/usr/bin/git", "clone"] + args, _Util.getGitSpeedEnv())
+            _Util.shellExecWithStuckCheck(["/usr/bin/git", "clone"] + args,
+                                          _Util.getGitSpeedEnv())
             break
         except _ProcessStuckError:
             time.sleep(_RETRY_TIMEOUT)
@@ -60,9 +58,10 @@ def pull(*args):
 
     while True:
         try:
-            FmUtil.shellExecWithStuckCheck(["/usr/bin/git", "pull", "--rebase"] + args, _Util.getGitSpeedEnv())
+            _Util.shellExecWithStuckCheck(["/usr/bin/git", "pull", "--rebase"] + args,
+                                          _Util.getGitSpeedEnv())
             break
-        except FmUtil.ProcessStuckError:
+        except _Util.ProcessStuckError:
             time.sleep(_RETRY_TIMEOUT)
         except subprocess.CalledProcessError as e:
             if e.returncode > 128:
@@ -90,7 +89,7 @@ class _Util:
     def getGitSpeedEnv():
         return {
             "GIT_HTTP_LOW_SPEED_LIMIT": "1024",
-            "GIT_HTTP_LOW_SPEED_TIME", "60",
+            "GIT_HTTP_LOW_SPEED_TIME": "60",
         }
 
     @staticmethod
@@ -140,6 +139,6 @@ class _Util:
         if proc.returncode > 128:
             time.sleep(1.0)
         if bStuck:
-            raise _ProcessStuckError(proc.args, timeout)
+            raise _ProcessStuckError(proc.args, _STUCK_TIMEOUT)
         if proc.returncode:
             raise subprocess.CalledProcessError(proc.returncode, proc.args, sStdout, sStderr)
