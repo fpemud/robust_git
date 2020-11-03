@@ -101,7 +101,7 @@ class _Util:
 
         # run the process
         proc = subprocess.Popen(cmdList,
-                                sstdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 universal_newlines=True, env=envDict)
 
         # redirect proc.stdout/proc.stderr to stdout/stderr
