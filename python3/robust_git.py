@@ -42,7 +42,7 @@ __version__ = "0.0.1"
 def clone(*args):
     while True:
         try:
-            _Util.shellExecWithStuckCheck(["/usr/bin/git", "clone"] + args,
+            _Util.shellExecWithStuckCheck(["/usr/bin/git", "clone"] + list(args),
                                           _Util.getGitSpeedEnv())
             break
         except _ProcessStuckError:
@@ -58,7 +58,7 @@ def pull(*args):
 
     while True:
         try:
-            _Util.shellExecWithStuckCheck(["/usr/bin/git", "pull", "--rebase"] + args,
+            _Util.shellExecWithStuckCheck(["/usr/bin/git", "pull", "--rebase"] + list(args),
                                           _Util.getGitSpeedEnv())
             break
         except _Util.ProcessStuckError:
