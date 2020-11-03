@@ -70,14 +70,6 @@ def pull(*args):
             time.sleep(_RETRY_TIMEOUT)
 
 
-def pull_or_clones(*args):
-    # pull is the default action
-    # clone if not exists
-    # clone if url differs
-    # clone if pull fails
-    pass
-
-
 _STUCK_TIMEOUT = 60     # unit: second
 _RETRY_TIMEOUT = 1      # unit: second
 
