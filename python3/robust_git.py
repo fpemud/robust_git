@@ -30,8 +30,10 @@ robust_git
 @contact: fpemud@sina.com
 """
 
+import os
 import sys
 import time
+import shutil
 import selectors
 import subprocess
 
@@ -40,32 +42,36 @@ __version__ = "0.0.1"
 
 
 def clone(*args):
+    args = list(args)
     while True:
         try:
-            _Util.shellExecWithStuckCheck(["/usr/bin/git", "clone"] + list(args),
+            _Util.shellExecWithStuckCheck(["/usr/bin/git", "clone"] + args,
                                           _Util.getGitSpeedEnv())
             break
         except _ProcessStuckError:
             time.sleep(_RETRY_TIMEOUT)
         except subprocess.CalledProcessError as e:
             if e.returncode > 128:
-                raise                    # terminated by signal, no retry needed
+                # terminated by signal, no retry needed
+                raise
             time.sleep(_RETRY_TIMEOUT)
 
 
 def pull(*args):
+    args = list(args)
     assert not any(x not in args for x in ["-r", "--rebase", "--no-rebase"])
 
     while True:
         try:
-            _Util.shellExecWithStuckCheck(["/usr/bin/git", "pull", "--rebase"] + list(args),
-                                          _Util.getGitSpeedEnv())
+            _Util.shellExecWithStuckCheck(["/usr/bin/git", "pull", "--rebase"] + args,
+                                            _Util.getGitSpeedEnv())
             break
-        except _Util.ProcessStuckError:
+        except _ProcessStuckError:
             time.sleep(_RETRY_TIMEOUT)
         except subprocess.CalledProcessError as e:
             if e.returncode > 128:
-                raise                    # terminated by signal, no retry needed
+                # terminated by signal, no retry needed
+                raise
             time.sleep(_RETRY_TIMEOUT)
 
 
@@ -91,6 +97,15 @@ class _Util:
             "GIT_HTTP_LOW_SPEED_LIMIT": "1024",
             "GIT_HTTP_LOW_SPEED_TIME": "60",
         }
+
+    @staticmethod
+    def rmDirContent(dirpath):
+        for filename in os.listdir(dirpath):
+            filepath = os.path.join(dirpath, filename)
+            try:
+                shutil.rmtree(filepath)
+            except OSError:
+                os.remove(filepath)
 
     @staticmethod
     def shellExecWithStuckCheck(cmdList, envDict):
