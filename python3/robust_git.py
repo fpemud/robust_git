@@ -45,8 +45,7 @@ def clone(*args):
     args = list(args)
     while True:
         try:
-            _Util.shellExecWithStuckCheck(["/usr/bin/git", "clone"] + args,
-                                          _Util.getGitSpeedEnv())
+            _Util.shellExecWithStuckCheck(["/usr/bin/git", "clone"] + args, _Util.getGitSpeedEnv())
             break
         except _ProcessStuckError:
             time.sleep(_RETRY_TIMEOUT)
@@ -63,8 +62,7 @@ def pull(*args):
 
     while True:
         try:
-            _Util.shellExecWithStuckCheck(["/usr/bin/git", "pull", "--rebase"] + args,
-                                            _Util.getGitSpeedEnv())
+            _Util.shellExecWithStuckCheck(["/usr/bin/git", "pull", "--rebase"] + args, _Util.getGitSpeedEnv())
             break
         except _ProcessStuckError:
             time.sleep(_RETRY_TIMEOUT)
@@ -73,6 +71,11 @@ def pull(*args):
                 # terminated by signal, no retry needed
                 raise
             time.sleep(_RETRY_TIMEOUT)
+
+
+def clean(dir_name):
+    _Util.cmdCall("/usr/bin/git", "-C", dir_name, "reset", "--hard")  # revert any modifications
+    _Util.cmdCall("/usr/bin/git", "-C", dir_name, "clean", "-xfd")    # delete untracked files
 
 
 _STUCK_TIMEOUT = 60     # unit: second
@@ -106,6 +109,30 @@ class _Util:
                 shutil.rmtree(filepath)
             except OSError:
                 os.remove(filepath)
+
+    @staticmethod
+    def cmdCall(cmd, *kargs):
+        # call command to execute backstage job
+        #
+        # scenario 1, process group receives SIGTERM, SIGINT and SIGHUP:
+        #   * callee must auto-terminate, and cause no side-effect
+        #   * caller must be terminated by signal, not by detecting child-process failure
+        # scenario 2, caller receives SIGTERM, SIGINT, SIGHUP:
+        #   * caller is terminated by signal, and NOT notify callee
+        #   * callee must auto-terminate, and cause no side-effect, after caller is terminated
+        # scenario 3, callee receives SIGTERM, SIGINT, SIGHUP:
+        #   * caller detects child-process failure and do appopriate treatment
+
+        ret = subprocess.run([cmd] + list(kargs),
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             universal_newlines=True)
+        if ret.returncode > 128:
+            # for scenario 1, caller's signal handler has the oppotunity to get executed during sleep
+            time.sleep(1.0)
+        if ret.returncode != 0:
+            print(ret.stdout)
+            ret.check_returncode()
+        return ret.stdout.rstrip()
 
     @staticmethod
     def shellExecWithStuckCheck(cmdList, envDict):
